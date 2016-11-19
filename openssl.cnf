@@ -38,16 +38,15 @@ policy            = policy_strict
 # See the POLICY FORMAT section of `man ca`.
 countryName             = match
 organizationName        = match
-organizationalUnitName  = optional
+organizationalUnitName  = match
 commonName              = supplied
-emailAddress            = optional
 
 [ policy_loose ]
 # Allow the intermediate CA to sign a more diverse range of certificates.
 # See the POLICY FORMAT section of the `ca` man page.
 countryName             = supplied
-stateOrProvinceName     = supplied
-localityName            = supplied
+stateOrProvinceName     = optional
+localityName            = optional
 organizationName        = supplied
 organizationalUnitName  = optional
 commonName              = supplied
@@ -89,39 +88,46 @@ keyUsage = critical, cRLSign, keyCertSign
 basicConstraints = critical, CA:true
 subjectKeyIdentifier = hash
 
-[ v3_intermediate_ca ]
-# Extensions for a typical intermediate CA (`man x509v3_config`).
-keyUsage = critical, digitalSignature, keyCertSign, cRLSign
-basicConstraints = critical, CA:true, pathlen:0
-certificatePolicies = @viz_cert_policy
-subjectKeyIdentifier = hash
-crlDistributionPoints = URI:http://crl.root-x1.ca.viz.software
-authorityInfoAccess = OCSP;URI:http://ocsp.root-x1.ca.viz.software/, caIssuers;URI:http://cert.root-x1.ca.viz.software/
-authorityKeyIdentifier = keyid:always,issuer
-
 [ viz_cert_policy ]
 policyIdentifier = 2.5.29.32.0
 CPS.1 = http://csp.root-x1.ca.viz.software
 
-[ usr_cert ]
+[ v3_intermediate_ca ]
+# Extensions for a typical intermediate CA (`man x509v3_config`).
+basicConstraints = critical, CA:true, pathlen:0
+keyUsage = critical, digitalSignature, keyCertSign, cRLSign
+subjectKeyIdentifier = hash
+authorityKeyIdentifier = keyid:always
+certificatePolicies = @viz_cert_policy
+crlDistributionPoints = URI:http://crl.root-x1.ca.viz.software
+authorityInfoAccess = OCSP;URI:http://ocsp.root-x1.ca.viz.software/, caIssuers;URI:http://cert.root-x1.ca.viz.software/
+issuerAltName = URI:http://ca.viz.software
+
+[ client_cert ]
 # Extensions for client certificates (`man x509v3_config`).
 basicConstraints = CA:FALSE
-nsCertType = client, email
-nsComment = "OpenSSL Generated Client Certificate"
-subjectKeyIdentifier = hash
-authorityKeyIdentifier = keyid,issuer
-keyUsage = critical, nonRepudiation, digitalSignature, keyEncipherment
+keyUsage = critical, nonRepudiation, digitalSignature, keyEncipherment, dataEncipherment
 extendedKeyUsage = clientAuth, emailProtection
+subjectKeyIdentifier = hash
+authorityKeyIdentifier = keyid:always
+subjectAltName=${ENV::SAN}
+certificatePolicies = @viz_cert_policy
+crlDistributionPoints = URI:http://crl.root-x1.ca.viz.software
+authorityInfoAccess = OCSP;URI:http://ocsp.root-x1.ca.viz.software/, caIssuers;URI:http://cert.root-x1.ca.viz.software/
+issuerAltName = URI:http://ca.viz.software
 
 [ server_cert ]
 # Extensions for server certificates (`man x509v3_config`).
 basicConstraints = CA:FALSE
-nsCertType = server
-nsComment = "OpenSSL Generated Server Certificate"
-subjectKeyIdentifier = hash
-authorityKeyIdentifier = keyid,issuer:always
-keyUsage = critical, digitalSignature, keyEncipherment
+keyUsage = critical, digitalSignature, keyEncipherment, keyAgreement
 extendedKeyUsage = serverAuth
+subjectKeyIdentifier = hash
+authorityKeyIdentifier = keyid:always
+subjectAltName=${ENV::SAN}
+certificatePolicies = @viz_cert_policy
+crlDistributionPoints = URI:http://crl.root-x1.ca.viz.software
+authorityInfoAccess = OCSP;URI:http://ocsp.root-x1.ca.viz.software/, caIssuers;URI:http://cert.root-x1.ca.viz.software/
+issuerAltName = URI:http://ca.viz.software
 
 [ crl_ext ]
 # Extension for CRLs (`man x509v3_config`).
@@ -130,7 +136,8 @@ authorityKeyIdentifier=keyid:always
 [ ocsp ]
 # Extension for OCSP signing certificates (`man ocsp`).
 basicConstraints = CA:FALSE
-subjectKeyIdentifier = hash
-authorityKeyIdentifier = keyid,issuer
 keyUsage = critical, digitalSignature
 extendedKeyUsage = critical, OCSPSigning
+subjectKeyIdentifier = hash
+authorityKeyIdentifier = keyid:always
+issuerAltName = URI:http://ca.viz.software

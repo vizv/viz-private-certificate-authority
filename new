@@ -1,0 +1,109 @@
+#!/bin/bash
+# Script for issuing a new certificate.
+#
+# Usage: ./new [CSR|DOMAIN|EMAIL] [server|client]
+
+# constants
+_R_DOMAIN='((?=[a-z0-9-]{1,63}\.)(xn--)?[a-z0-9]+(-[a-z0-9]+)*\.)+[a-z]{2,63}'
+_R_EMAIL="[a-z0-9_\-.+]+\@${_R_DOMAIN}"
+_R_FEMAIL="[^/]+/emailAddress=${_R_EMAIL}"
+_KEY_SIZE=4096
+
+# initialize
+set -e
+cd $(dirname $(realpath "$0"))
+source config.env
+
+if [ $# -lt 1 ]; then
+  # interactive mode
+  read -p 'Domain / Email: ' COMMON_NAME
+elif [ -f "$1" ]; then
+  # argument is CSR file
+  FILE="$1"
+  COMMON_NAME="$(openssl req -in "$FILE" -noout -text \
+                 | grep Subject: | grep -o 'CN=[^,]*' | cut -c 4-)" \
+    || { echo "[!] Fatal: File \"$FILE\" is not a valid CSR file" 2>/dev/null
+         exit 1; }
+else
+  COMMON_NAME="$1"
+fi
+
+# complete information for client certificate
+grep -qP "^$_R_EMAIL$" 2>/dev/null <<<"$COMMON_NAME" && [ -z "$FILE" ] \
+  && { read -p 'Full Name: ' FULL_NAME
+       COMMON_NAME="${FULL_NAME}/emailAddress=${COMMON_NAME}"; } \
+  || true
+
+# identify common name type
+TYPE=invalid
+grep -qP "^$_R_DOMAIN$" 2>/dev/null <<<"$COMMON_NAME" && TYPE=server || true
+grep -qP "^$_R_FEMAIL$" 2>/dev/null <<<"$COMMON_NAME" && TYPE=client || true
+
+case "$TYPE" in
+  client)
+    SHORT_NAME="$(sed 's#^[^/]*/emailAddress=\(.*\)#\1#g' <<<"${COMMON_NAME}")"
+    export SAN="email:${SHORT_NAME}"
+    ;;
+  server)
+    SHORT_NAME="${COMMON_NAME}"
+    export SAN="DNS:${SHORT_NAME}"
+    ;;
+  *)
+    echo "[!] Fatal: invalid certificate information" 2>/dev/null
+    exit 1
+    ;;
+esac
+
+# generate private key and CSR if haven't been generated
+if [ -z "$FILE" ]; then
+  echo "[+] Generating private key and certificate signing request..."
+  TMP_FIFO="$(mktemp -u)"
+  TMP_EKEY="$(mktemp -u)"
+  TMP_CSR="$(mktemp -u)"
+  mkfifo "$TMP_FIFO"
+
+  read -p 'Organizational Unit Name (optional): ' CSR_OU
+  [ -n "$CSR_OU" ] && REQ_OU="/OU=${CSR_OU}"
+  SUBJ="/C=${CSR_C}/O=${CSR_O}${REQ_OU}/CN=${COMMON_NAME}"
+
+  echo "  [+] Generating private key..."
+  openssl genrsa "$_KEY_SIZE" 2>/dev/null \
+    | tee "$TMP_FIFO" \
+    | gpg --armor --encrypt --recipient "$GPG_FP" \
+    >"$TMP_EKEY" &
+
+  echo "  [+] Generating certificate signing request..."
+  openssl req -new -key "$TMP_FIFO" -subj "$SUBJ" -out "$TMP_CSR"
+  FILE="$TMP_CSR"
+
+  rm -f "$TMP_FIFO"
+fi
+
+echo "[+] Issuing certificate..."
+SUBJ="$(openssl req -in "$FILE" -noout -text | grep 'Subject:')"
+getfield() { grep "\\<${1}=" | sed "s/.*\\<${1}=\\([^,/]*\\).*/\1/g"; }
+echo "========================================"
+echo "Issue Type   : ${TYPE} certificate"
+echo "Country      : $(getfield 'C' <<<"$SUBJ")"
+echo "Province     : $(getfield 'ST' <<<"$SUBJ")"
+echo "City         : $(getfield 'L' <<<"$SUBJ")"
+echo "Organization : $(getfield 'O' <<<"$SUBJ")"
+echo "Department   : $(getfield 'OU' <<<"$SUBJ")"
+echo "Name/Domain  : $(getfield 'CN' <<<"$SUBJ")"
+echo "Email        : $(getfield 'emailAddress' <<<"$SUBJ")"
+echo "========================================"
+read -p 'Please verify subject information and press ENTER to continue.'
+
+cd "intermediate/${SUB_CA}"
+gpg --decrypt "private/intermediate.key.pem.gpg" \
+  | openssl ca -batch \
+               -config "openssl.cnf" \
+               -extensions "${TYPE}_cert" \
+               -notext \
+               -keyfile /dev/stdin \
+               -in "$FILE" \
+               -out "certs/${TYPE}:${SHORT_NAME}.cert.pem"
+mv "${TMP_EKEY}" "private/${TYPE}:${SHORT_NAME}.key.pem.gpg"
+mv "${TMP_CSR}" "csr/${TYPE}:${SHORT_NAME}.csr.pem"
+
+echo "[+] Certificate has been issued successfully!"
