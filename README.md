@@ -14,5 +14,11 @@
 ## 参考链接
 
 * [OpenSSL Certificate Authority][1]
+* [subjectAltName in Environment Variable][2]
+* [Key Usage Extensions and Extended Key Usage][3]
+* [RFC for X509 PKI][4]
 
 [1]: https://jamielinux.com/docs/openssl-certificate-authority/
+[2]: http://security.stackexchange.com/questions/74345/provide-subjectaltname-to-openssl-directly-on-command-line
+[3]: https://www.ibm.com/support/knowledgecenter/SSKTMJ_8.0.1/com.ibm.help.domino.admin.doc/DOC/H_KEY_USAGE_EXTENSIONS_FOR_INTERNET_CERTIFICATES_1521_OVER.html
+[4]: https://tools.ietf.org/html/rfc5280
