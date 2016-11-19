@@ -69,8 +69,7 @@ if [ -z "$FILE" ]; then
   echo "  [+] Generating private key..."
   openssl genrsa "$_KEY_SIZE" 2>/dev/null \
     | tee "$TMP_FIFO" \
-    | gpg --armor --encrypt --recipient "$GPG_FP" \
-    >"$TMP_EKEY" &
+    | gpg --armor --encrypt --recipient "$GPG_FP" >"$TMP_EKEY" &
 
   echo "  [+] Generating certificate signing request..."
   openssl req -new -key "$TMP_FIFO" -subj "$SUBJ" -out "$TMP_CSR"
@@ -80,29 +79,16 @@ if [ -z "$FILE" ]; then
 fi
 
 echo "[+] Issuing certificate..."
-SUBJ="$(openssl req -in "$FILE" -noout -text | grep 'Subject:')"
-getfield() { grep "\\<${1}=" | sed "s/.*\\<${1}=\\([^,/]*\\).*/\1/g"; }
-echo "========================================"
-echo "Issue Type   : ${TYPE} certificate"
-echo "Country      : $(getfield 'C' <<<"$SUBJ")"
-echo "Province     : $(getfield 'ST' <<<"$SUBJ")"
-echo "City         : $(getfield 'L' <<<"$SUBJ")"
-echo "Organization : $(getfield 'O' <<<"$SUBJ")"
-echo "Department   : $(getfield 'OU' <<<"$SUBJ")"
-echo "Name/Domain  : $(getfield 'CN' <<<"$SUBJ")"
-echo "Email        : $(getfield 'emailAddress' <<<"$SUBJ")"
-echo "========================================"
-read -p 'Please verify subject information and press ENTER to continue.'
-
 cd "intermediate/${SUB_CA}"
-gpg --decrypt "private/intermediate.key.pem.gpg" \
-  | openssl ca -batch \
-               -config "openssl.cnf" \
-               -extensions "${TYPE}_cert" \
-               -notext \
-               -keyfile /dev/stdin \
-               -in "$FILE" \
-               -out "certs/${TYPE}:${SHORT_NAME}.cert.pem"
+TMP_FIFO="$(mktemp -u)"
+mkfifo "$TMP_FIFO"
+gpg --decrypt "private/intermediate.key.pem.gpg" >"$TMP_FIFO" &
+openssl ca -config "openssl.cnf" \
+           -extensions "${TYPE}_cert" \
+           -notext \
+           -keyfile "$TMP_FIFO" \
+           -in "$FILE" \
+           -out "certs/${TYPE}:${SHORT_NAME}.cert.pem"
 mv "${TMP_EKEY}" "private/${TYPE}:${SHORT_NAME}.key.pem.gpg"
 mv "${TMP_CSR}" "csr/${TYPE}:${SHORT_NAME}.csr.pem"
 
