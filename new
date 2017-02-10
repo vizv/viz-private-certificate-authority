@@ -80,6 +80,7 @@ fi
 
 echo "[+] Issuing certificate..."
 cd "intermediate/${SUB_CA}"
+SERIAL="$(cat serial)"
 TMP_FIFO="$(mktemp -u)"
 mkfifo "$TMP_FIFO"
 gpg --decrypt "private/intermediate.key.pem.gpg" >"$TMP_FIFO" &
@@ -88,8 +89,8 @@ openssl ca -config "openssl.cnf" \
            -notext \
            -keyfile "$TMP_FIFO" \
            -in "$FILE" \
-           -out "certs/${TYPE}:${SHORT_NAME}.cert.pem"
-mv "${TMP_EKEY}" "private/${TYPE}:${SHORT_NAME}.key.pem.gpg"
-mv "${TMP_CSR}" "csr/${TYPE}:${SHORT_NAME}.csr.pem"
+           -out "certs/${SERIAL}-${TYPE}:${SHORT_NAME}.cert.pem"
+mv "${TMP_EKEY}" "private/${SERIAL}-${TYPE}:${SHORT_NAME}.key.pem.gpg"
+mv "${TMP_CSR}" "csr/${SERIAL}-${TYPE}:${SHORT_NAME}.csr.pem"
 
 echo "[+] Certificate has been issued successfully!"
