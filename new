@@ -78,6 +78,7 @@ if [ -z "$FILE" ]; then
   rm -f "$TMP_FIFO"
 fi
 
+# issue certificate
 echo "[+] Issuing certificate..."
 cd "intermediate/${SUB_CA}"
 SERIAL="$(cat serial)"
@@ -93,4 +94,5 @@ openssl ca -config "openssl.cnf" \
 mv "${TMP_EKEY}" "private/${SERIAL}-${TYPE}:${SHORT_NAME}.key.pem.gpg"
 mv "${TMP_CSR}" "csr/${SERIAL}-${TYPE}:${SHORT_NAME}.csr.pem"
 
+rm -f "$TMP_FIFO"
 echo "[+] Certificate has been issued successfully!"

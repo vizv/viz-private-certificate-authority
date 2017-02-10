@@ -1,0 +1,27 @@
+#!/bin/bash
+# Script for updating certificate revocation list.
+
+# initialize
+set -e
+cd $(dirname $(realpath "$0"))
+source config.env
+
+# update CRL
+echo "[+] Updating certificate revocation list..."
+cd "intermediate/${SUB_CA}"
+CRL_NUMBER="$(cat crlnumber)"
+TMP_FIFO="$(mktemp -u)"
+mkfifo "$TMP_FIFO"
+gpg --decrypt "private/intermediate.key.pem.gpg" >"$TMP_FIFO" &
+export SAN='ignored'
+openssl ca -config "openssl.cnf" \
+           -notext \
+           -keyfile "$TMP_FIFO" \
+           -gencrl \
+           -out "crl/${CRL_NUMBER}.crl.pem"
+openssl crl -in "crl/${CRL_NUMBER}.crl.pem" \
+            -outform der \
+            -out "crl/intermediate.crl"
+
+rm -f "$TMP_FIFO"
+echo "[+] Certificate revocation list has been updated successfully!"
