@@ -8,7 +8,7 @@
 
 * 证书颁发政策／实践声明：http://csp.root-x1.ca.viz.software
 * 证书吊销列表地址：http://crl.root-x1.ca.viz.software
-* OSCP 服务器地址：http://ocsp.root-x1.ca.viz.software/
+* OCSP 服务器地址：http://ocsp.root-x1.ca.viz.software/
 * 根证书位置：http://cert.root-x1.ca.viz.software/
 
 ## 参考链接
