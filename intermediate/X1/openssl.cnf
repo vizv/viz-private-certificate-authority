@@ -1,10 +1,10 @@
-# Viz Root CA Configuration File
+# Viz Authority CA Configuration File
 
 [ ca ]
 # `man ca`
-default_ca = CA_Viz_Root_X1
+default_ca = CA_Viz_Authority_X1
 
-[ CA_Viz_Root_X1 ]
+[ CA_Viz_Authority_X1 ]
 # Directory and file locations.
 dir               = .
 certs             = $dir/certs
