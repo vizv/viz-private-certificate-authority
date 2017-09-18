@@ -1,1 +1,2 @@
 V	210925082946Z		1000	unknown	/C=CA/O=Viz Software/OU=Certificate Authority/CN=Viz Authority X1
+V	220917174603Z		1001	unknown	/C=CA/O=Viz Software/OU=Certificate Authority/CN=Viz Docker Authority X1

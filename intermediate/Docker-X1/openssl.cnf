@@ -1,0 +1,143 @@
+# Viz Docker CA Configuration File
+
+[ ca ]
+# `man ca`
+default_ca = CA_Viz_Docker_X1
+
+[ CA_Viz_Docker_X1 ]
+# Directory and file locations.
+dir               = .
+certs             = $dir/certs
+crl_dir           = $dir/crl
+new_certs_dir     = $dir/newcerts
+database          = $dir/index.txt
+serial            = $dir/serial
+RANDFILE          = $dir/private/.rand
+
+# The root key and root certificate.
+private_key       = $dir/private/intermediate.key.pem
+certificate       = $dir/certs/intermediate.cert.pem
+
+# For certificate revocation lists.
+crlnumber         = $dir/crlnumber
+crl               = $dir/crl/intermediate.crl.pem
+crl_extensions    = crl_ext
+default_crl_days  = 30
+
+# Use a even stronger message digest algorithm.
+default_md        = sha512
+
+name_opt          = ca_default
+cert_opt          = ca_default
+default_days      = 375
+preserve          = no
+policy            = policy_loose
+
+[ policy_strict ]
+# The root CA should only sign intermediate certificates that match.
+# See the POLICY FORMAT section of `man ca`.
+countryName             = match
+organizationName        = match
+organizationalUnitName  = match
+commonName              = supplied
+
+[ policy_loose ]
+# Allow the intermediate CA to sign a more diverse range of certificates.
+# See the POLICY FORMAT section of the `ca` man page.
+countryName             = supplied
+stateOrProvinceName     = optional
+localityName            = optional
+organizationName        = supplied
+organizationalUnitName  = optional
+commonName              = supplied
+emailAddress            = optional
+
+[ req ]
+# Options for the `req` tool (`man req`).
+default_bits        = 4096
+distinguished_name  = req_distinguished_name
+string_mask         = utf8only
+
+# Use a even stronger message digest algorithm.
+default_md          = sha512
+
+# Extension to add when the -x509 option is used.
+x509_extensions     = v3_ca
+
+[ req_distinguished_name ]
+# See <https://en.wikipedia.org/wiki/Certificate_signing_request>.
+countryName                     = Country Name (2 letter code)
+stateOrProvinceName             = State or Province Name
+localityName                    = Locality Name
+0.organizationName              = Organization Name
+organizationalUnitName          = Organizational Unit Name
+commonName                      = Common Name
+emailAddress                    = Email Address
+
+# Optionally, specify some defaults.
+countryName_default             = CA
+stateOrProvinceName_default     =
+localityName_default            =
+0.organizationName_default      = Viz Software
+organizationalUnitName_default  =
+emailAddress_default            =
+
+[ v3_ca ]
+# Extensions for a typical CA (`man x509v3_config`).
+keyUsage = critical, cRLSign, keyCertSign
+basicConstraints = critical, CA:true
+subjectKeyIdentifier = hash
+
+[ viz_cert_policy ]
+policyIdentifier = 2.5.29.32.0
+CPS.1 = http://csp.root-x1.ca.viz.software
+
+[ v3_intermediate_ca ]
+# Extensions for a typical intermediate CA (`man x509v3_config`).
+basicConstraints = critical, CA:true, pathlen:0
+keyUsage = critical, digitalSignature, keyCertSign, cRLSign
+subjectKeyIdentifier = hash
+authorityKeyIdentifier = keyid:always
+certificatePolicies = @viz_cert_policy
+crlDistributionPoints = URI:http://crl.root-x1.ca.viz.software
+authorityInfoAccess = OCSP;URI:http://ocsp.root-x1.ca.viz.software/, caIssuers;URI:http://cert.root-x1.ca.viz.software/
+issuerAltName = URI:http://ca.viz.software
+
+[ client_cert ]
+# Extensions for client certificates (`man x509v3_config`).
+basicConstraints = CA:FALSE
+keyUsage = critical, nonRepudiation, digitalSignature, keyEncipherment, dataEncipherment
+extendedKeyUsage = clientAuth, emailProtection
+subjectKeyIdentifier = hash
+authorityKeyIdentifier = keyid:always
+subjectAltName=${ENV::SAN}
+certificatePolicies = @viz_cert_policy
+crlDistributionPoints = URI:http://crl.root-x1.ca.viz.software
+authorityInfoAccess = OCSP;URI:http://ocsp.root-x1.ca.viz.software/, caIssuers;URI:http://cert.root-x1.ca.viz.software/
+issuerAltName = URI:http://ca.viz.software
+
+[ server_cert ]
+# Extensions for server certificates (`man x509v3_config`).
+basicConstraints = CA:FALSE
+keyUsage = critical, digitalSignature, keyEncipherment, keyAgreement
+extendedKeyUsage = serverAuth
+subjectKeyIdentifier = hash
+authorityKeyIdentifier = keyid:always
+subjectAltName=${ENV::SAN}
+certificatePolicies = @viz_cert_policy
+crlDistributionPoints = URI:http://crl.root-x1.ca.viz.software
+authorityInfoAccess = OCSP;URI:http://ocsp.root-x1.ca.viz.software/, caIssuers;URI:http://cert.root-x1.ca.viz.software/
+issuerAltName = URI:http://ca.viz.software
+
+[ crl_ext ]
+# Extension for CRLs (`man x509v3_config`).
+authorityKeyIdentifier=keyid:always
+
+[ ocsp ]
+# Extension for OCSP signing certificates (`man ocsp`).
+basicConstraints = CA:FALSE
+keyUsage = critical, digitalSignature
+extendedKeyUsage = critical, OCSPSigning
+subjectKeyIdentifier = hash
+authorityKeyIdentifier = keyid:always
+issuerAltName = URI:http://ca.viz.software
