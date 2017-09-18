@@ -12,7 +12,8 @@ _KEY_SIZE=4096
 # initialize
 set -e
 cd $(dirname $(realpath "$0"))
-source config.env
+CONFIG_ENV="${CONFIG_ENV:-config.env}"
+source "$CONFIG_ENV"
 
 if [ $# -lt 1 ]; then
   # interactive mode
