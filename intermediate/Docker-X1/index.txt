@@ -2,3 +2,4 @@ V	180928175054Z		1000	unknown	/C=CA/O=Viz Docker Cluster/OU=Docker Cluster Manag
 V	180928175143Z		1001	unknown	/C=CA/O=Viz Docker Cluster/CN=headquarter.vizv.com
 V	181001041449Z		1002	unknown	/C=CA/O=Viz Docker Cluster/CN=little-prince.vizv.com
 V	181001043854Z		1003	unknown	/C=CA/O=Viz Docker Cluster/CN=beloved-rose.vizv.com
+V	181024112601Z		1004	unknown	/C=CA/O=Viz Docker Cluster/CN=british-columbia.vizv.com
